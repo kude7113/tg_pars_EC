@@ -19,6 +19,8 @@ class NewsItem:
         self.pub_time = pub_time
 
 
+
+
 def get_news():
     """
     Функция парсинга главных новостей с gazeta.ru.
@@ -34,19 +36,19 @@ def get_news():
     soup = BeautifulSoup(response.text, 'html.parser')
 
     # Найти блоки с заголовками новостей
-    news_items = soup.find_all('div', class_='b_ear-title')
+    title_blocks = soup.find_all('div', class_='b_ear-title')
 
     new_news = []
     latest_time = None
 
-    for item in news_items:
-        title = item.text.strip()
-        time_elem = item.find_next_sibling('time', class_='b_ear-time')
-        link_elem = item.find_parent('a')  # Находим родительский тег <a>
+    for title_elem in title_blocks:
+        link_elem = title_elem.find_parent('a')  # Находим родительский тег <a>
+        time_elem = link_elem.find('time', class_='b_ear-time') if link_elem else None  # Ищем внутри <a>
 
-        if not time_elem or not link_elem:
+        if not title_elem or not time_elem or not link_elem:
             continue
 
+        title = title_elem.text.strip()
         link = link_elem['href'] if 'href' in link_elem.attrs else None
         if link and not link.startswith('http'):
             link = URL + link  # Формируем полный URL для относительных ссылок
@@ -63,7 +65,7 @@ def get_news():
         # Если это первая итерация, запоминаем последнюю новость и сразу отправляем
         if last_seen_time is None:
             last_seen_time = pub_time
-            print(f"Инициализация: отправка первой новости - {title} ({pub_time.strftime('%Y-%m-%d %H:%M:%S')}) - {link}")
+            send_news(NewsItem(title, link, pub_time))
             return [NewsItem(title, link, pub_time)]
 
         # Если новость старее или равна последней сохраненной, пропускаем
